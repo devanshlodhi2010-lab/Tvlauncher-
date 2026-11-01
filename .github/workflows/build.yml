@@ -8,6 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: unzip -q GlassLauncher.zip
+      - run: printf 'android.useAndroidX=true\norg.gradle.jvmargs=-Xmx2g\n' > TvLauncher/gradle.properties
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -15,7 +16,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-      - run: gradle assembleDebug --no-daemon
+      - shell: bash
+        run: gradle assembleDebug --no-daemon 2>&1 | tee build.log
+        working-directory: TvLauncher
+      - if: failure()
+        run: |
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E "^e: |error:|What went wrong|Execution failed" -A3 build.log | head -40 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
         working-directory: TvLauncher
       - uses: actions/upload-artifact@v4
         with:
